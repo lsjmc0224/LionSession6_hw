@@ -19,6 +19,19 @@ def detail(request, id):
         new_comment.content = request.POST['content']
         new_comment.pub_date = timezone.now()
         new_comment.save()
+
+        words = new_comment.content.split(' ')
+        tag_list = []
+        for word in words:
+            if len(word) > 0:
+                if word[0] == '#':
+                    tag_list.append(word[1:])
+        new_comment.tags.clear()
+        for t in tag_list:
+            #기존에 존재하는 태그면  get, 없으면 create
+            tag, boolean = Tag.objects.get_or_create(name=t)
+            #이후 태그 필드에 추가
+            new_comment.tags.add(tag.id)
         return redirect('main:detail', id)
     return render(request, 'main/detail.html',{'blog':blog})
 
@@ -74,7 +87,21 @@ def update(request, id):
             update_blog.pub_date = timezone.now()
             update_blog.body = request.POST['body']
             update_blog.save()
-            return redirect('main:detail', update_blog.id)
+            # return redirect('main:detail', update_blog.id)
+            words = update_blog.body.split(' ')
+            tag_list = []
+            for word in words:
+                if len(word) > 0:
+                    if word[0] == '#':
+                        tag_list.append(word[1:])
+            # 기존 태그 리스트 초기화
+            update_blog.tags.clear()
+            for t in tag_list:
+                #기존에 존재하는 태그면  get, 없으면 create
+                tag, boolean = Tag.objects.get_or_create(name=t)
+                #이후 태그 필드에 추가
+                update_blog.tags.add(tag.id)
+            return redirect('main:detail', update_blog.id)            
     return redirect('accounts:login')
 
 # delete(삭제) 기능 구현
@@ -98,7 +125,10 @@ def tag_list(request):
 def tag_blogs(reqest, tag_id):
     tag = get_object_or_404(Tag, id = tag_id)
     blogs = tag.blogs.all()
+    comments = tag.comments.all()
+    # + tag.comments.all()
     return render(reqest, 'main/tag_blogs.html',{
         'tag':tag,
         'blogs':blogs,
+        'comments':comments,
     })
